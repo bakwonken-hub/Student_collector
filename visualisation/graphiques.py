@@ -11,7 +11,12 @@ class VisualisationEtudiants:
         if len(df) == 0:
             return None
         
-        counts = df['filiere'].value_counts().reset_index()
+        # Nettoyer les données
+        df_clean = df.dropna(subset=['filiere'])
+        if len(df_clean) == 0:
+            return None
+        
+        counts = df_clean['filiere'].value_counts().reset_index()
         counts.columns = ['Filière', 'Nombre']
         
         fig = px.bar(
@@ -33,7 +38,11 @@ class VisualisationEtudiants:
         if len(df) == 0:
             return None
         
-        counts = df['genre'].value_counts()
+        df_clean = df.dropna(subset=['genre'])
+        if len(df_clean) == 0:
+            return None
+        
+        counts = df_clean['genre'].value_counts()
         
         fig = px.pie(
             values=counts.values,
@@ -50,12 +59,16 @@ class VisualisationEtudiants:
         if len(df) == 0:
             return None
         
+        df_clean = df.dropna(subset=['moyenne_actuelle'])
+        if len(df_clean) == 0:
+            return None
+        
         fig = px.histogram(
-            df,
+            df_clean,
             x='moyenne_actuelle',
             nbins=20,
             title="Distribution des moyennes",
-            labels={'moyenne_actuelle': 'Moyenne /20', 'count': 'Nombre d\'étudiants'},
+            labels={'moyenne_actuelle': 'Moyenne /20', 'count': "Nombre d'étudiants"},
             color_discrete_sequence=['#1E88E5']
         )
         fig.add_vline(x=10, line_dash="dash", line_color="red", 
@@ -71,8 +84,14 @@ class VisualisationEtudiants:
         if len(df) == 0:
             return None
         
+        df_clean = df.dropna(subset=['niveau'])
+        if len(df_clean) == 0:
+            return None
+        
         ordre = ["L1", "L2", "L3", "M1", "M2"]
-        counts = df['niveau'].value_counts()
+        counts = df_clean['niveau'].value_counts()
+        
+        # Réindexer avec l'ordre
         counts = counts.reindex(ordre, fill_value=0).reset_index()
         counts.columns = ['Niveau', 'Nombre']
         
@@ -89,20 +108,40 @@ class VisualisationEtudiants:
     
     @staticmethod
     def scatter_moyenne_absences(df):
-        """Nuage de points moyenne vs absences"""
+        """Nuage de points moyenne vs absences - VERSION CORRIGÉE"""
         if len(df) == 0:
             return None
         
+        # Vérifier les colonnes nécessaires
+        if 'nombre_absences' not in df.columns or 'moyenne_actuelle' not in df.columns:
+            fig = go.Figure()
+            fig.add_annotation(
+                text="Colonnes 'nombre_absences' ou 'moyenne_actuelle' manquantes",
+                xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False
+            )
+            fig.update_layout(height=550)
+            return fig
+        
+        # Nettoyer les données
+        df_clean = df.dropna(subset=['nombre_absences', 'moyenne_actuelle'])
+        
+        if len(df_clean) == 0:
+            fig = go.Figure()
+            fig.add_annotation(
+                text="Pas assez de données pour afficher le graphique",
+                xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False
+            )
+            fig.update_layout(height=550)
+            return fig
+        
+        # Version simple sans trendline problématique
         fig = px.scatter(
-            df,
+            df_clean,
             x='nombre_absences',
             y='moyenne_actuelle',
             title="Corrélation : Absences vs Moyenne",
             labels={'nombre_absences': "Nombre d'absences", 'moyenne_actuelle': "Moyenne /20"},
-            color='filiere',
-            size='age',
-            hover_data=['nom', 'prenom'],
-            trendline="ols"
+            color_discrete_sequence=['#1E88E5']
         )
         fig.update_layout(height=550)
         return fig
@@ -113,7 +152,11 @@ class VisualisationEtudiants:
         if len(df) == 0:
             return None
         
-        counts = df['hebergement'].value_counts().reset_index()
+        df_clean = df.dropna(subset=['hebergement'])
+        if len(df_clean) == 0:
+            return None
+        
+        counts = df_clean['hebergement'].value_counts().reset_index()
         counts.columns = ["Type d'hébergement", "Nombre"]
         
         fig = px.bar(
@@ -130,6 +173,9 @@ class VisualisationEtudiants:
     @staticmethod
     def gauge_moyenne_generale(moyenne):
         """Jauge de la moyenne générale"""
+        if moyenne is None or moyenne == 0:
+            moyenne = 10  # Valeur par défaut
+        
         fig = go.Figure(go.Indicator(
             mode="gauge+number+delta",
             value=moyenne,
@@ -154,32 +200,16 @@ class VisualisationEtudiants:
         return fig
     
     @staticmethod
-    def sunburst_filiere_niveau(df):
-        """Graphique en sunburst (filière → niveau)"""
-        if len(df) == 0:
-            return None
-        
-        # Préparation des données
-        sunburst_data = df.groupby(['filiere', 'niveau']).size().reset_index(name='count')
-        
-        fig = px.sunburst(
-            sunburst_data,
-            path=['filiere', 'niveau'],
-            values='count',
-            title="Hiérarchie : Filière → Niveau",
-            color='count',
-            color_continuous_scale='Viridis'
-        )
-        fig.update_layout(height=550)
-        return fig
-    
-    @staticmethod
     def barplot_ville(df):
         """Graphique des villes d'origine"""
         if len(df) == 0:
             return None
         
-        counts = df['ville'].value_counts().head(10).reset_index()
+        df_clean = df.dropna(subset=['ville'])
+        if len(df_clean) == 0:
+            return None
+        
+        counts = df_clean['ville'].value_counts().head(10).reset_index()
         counts.columns = ["Ville", "Nombre"]
         
         fig = px.bar(
