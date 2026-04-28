@@ -1,6 +1,5 @@
 import plotly.express as px
 import plotly.graph_objects as go
-import streamlit as st
 
 class VisualisationEtudiants:
     """Génération de graphiques interactifs"""
@@ -11,7 +10,6 @@ class VisualisationEtudiants:
         if len(df) == 0:
             return None
         
-        # Nettoyer les données
         df_clean = df.dropna(subset=['filiere'])
         if len(df_clean) == 0:
             return None
@@ -90,8 +88,6 @@ class VisualisationEtudiants:
         
         ordre = ["L1", "L2", "L3", "M1", "M2"]
         counts = df_clean['niveau'].value_counts()
-        
-        # Réindexer avec l'ordre
         counts = counts.reindex(ordre, fill_value=0).reset_index()
         counts.columns = ['Niveau', 'Nombre']
         
@@ -108,33 +104,30 @@ class VisualisationEtudiants:
     
     @staticmethod
     def scatter_moyenne_absences(df):
-        """Nuage de points moyenne vs absences - VERSION CORRIGÉE"""
+        """Nuage de points moyenne vs absences"""
         if len(df) == 0:
             return None
         
-        # Vérifier les colonnes nécessaires
         if 'nombre_absences' not in df.columns or 'moyenne_actuelle' not in df.columns:
             fig = go.Figure()
             fig.add_annotation(
-                text="Colonnes 'nombre_absences' ou 'moyenne_actuelle' manquantes",
+                text="Données manquantes",
                 xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False
             )
             fig.update_layout(height=550)
             return fig
         
-        # Nettoyer les données
         df_clean = df.dropna(subset=['nombre_absences', 'moyenne_actuelle'])
         
         if len(df_clean) == 0:
             fig = go.Figure()
             fig.add_annotation(
-                text="Pas assez de données pour afficher le graphique",
+                text="Pas assez de données",
                 xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False
             )
             fig.update_layout(height=550)
             return fig
         
-        # Version simple sans trendline problématique
         fig = px.scatter(
             df_clean,
             x='nombre_absences',
@@ -174,7 +167,7 @@ class VisualisationEtudiants:
     def gauge_moyenne_generale(moyenne):
         """Jauge de la moyenne générale"""
         if moyenne is None or moyenne == 0:
-            moyenne = 10  # Valeur par défaut
+            moyenne = 10
         
         fig = go.Figure(go.Indicator(
             mode="gauge+number+delta",
@@ -197,6 +190,29 @@ class VisualisationEtudiants:
             }
         ))
         fig.update_layout(height=300)
+        return fig
+    
+    @staticmethod
+    def sunburst_filiere_niveau(df):
+        """Graphique sunburst (hiérarchie filière → niveau)"""
+        if len(df) == 0:
+            return None
+        
+        df_clean = df.dropna(subset=['filiere', 'niveau'])
+        if len(df_clean) == 0:
+            return None
+        
+        sunburst_data = df_clean.groupby(['filiere', 'niveau']).size().reset_index(name='count')
+        
+        fig = px.sunburst(
+            sunburst_data,
+            path=['filiere', 'niveau'],
+            values='count',
+            title="Hiérarchie : Filière → Niveau",
+            color='count',
+            color_continuous_scale='Viridis'
+        )
+        fig.update_layout(height=550)
         return fig
     
     @staticmethod
